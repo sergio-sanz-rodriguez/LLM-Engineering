@@ -48,7 +48,7 @@ class Item:
         Clean up the provided text by removing unnecessary characters and whitespace
         Also remove words that are 7+ chars and contain numbers, as these are likely irrelevant product numbers
         """
-        # Remove emojis
+        # Remove emojis first
         stuff = self.remove_emojis(stuff)
 
         stuff = re.sub(r'[:\[\]"{}【】\s]+', ' ', stuff).strip()
