@@ -1,11 +1,19 @@
+import os
 import modal
 from modal import App, Volume, Image
 
 # Setup - define our infrastructure with code!
 
 app = modal.App("pricer-service")
-image = Image.debian_slim().pip_install("huggingface", "torch", "transformers", "bitsandbytes", "accelerate", "peft")
-secrets = [modal.Secret.from_name("hf-secret")]
+#image = Image.debian_slim().pip_install("huggingface", "torch", "transformers", "bitsandbytes", "accelerate", "peft")
+
+# Modal creates a container image based on system's based image, any pip install, a local source code
+image = (
+    Image.debian_slim()
+    .pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft", "python-dotenv") #We create an image and install new packages
+    #.add_local_python_source("pricer_service", copy=True)  # ✅ forces copy into image
+)
+secrets = [modal.Secret.from_name("hf-secret-2")]
 
 # Constants
 
@@ -24,8 +32,10 @@ FINETUNED_DIR = MODEL_DIR + FINETUNED_MODEL
 QUESTION = "How much does this cost to the nearest dollar?"
 PREFIX = "Price is $"
 
+# Allowss you to pre-build some aspects or the initialization
 @app.cls(image=image, secrets=secrets, gpu=GPU, timeout=1800)
 class Pricer:
+    # Put the model, previously downloaded from hugging face, in the hugging face cache.
     @modal.build()
     def download_model_to_folder(self):
         from huggingface_hub import snapshot_download
@@ -34,12 +44,17 @@ class Pricer:
         snapshot_download(BASE_MODEL, local_dir=BASE_DIR)
         snapshot_download(FINETUNED_MODEL, revision=REVISION, local_dir=FINETUNED_DIR)
 
+    # When the function actually gets called. Setting up tokenizer, based model
     @modal.enter()
     def setup(self):
         import os
         import torch
         from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, set_seed
         from peft import PeftModel
+        from dotenv import load_dotenv
+
+        load_dotenv(override=True)
+        token = os.environ["HF_TOKEN"]
         
         # Quant Config
         quant_config = BitsAndBytesConfig(
@@ -58,7 +73,8 @@ class Pricer:
         self.base_model = AutoModelForCausalLM.from_pretrained(
             BASE_DIR, 
             quantization_config=quant_config,
-            device_map="auto"
+            device_map="auto",
+            token=token
         )
     
         self.fine_tuned_model = PeftModel.from_pretrained(self.base_model, FINETUNED_DIR, revision=REVISION)

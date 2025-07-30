@@ -72,7 +72,7 @@ class ScrapedDeal:
         return f"Title: {self.title}\nDetails: {self.details.strip()}\nFeatures: {self.features.strip()}\nURL: {self.url}"
 
     @classmethod
-    def fetch(cls, show_progress : bool = False) -> List[Self]:
+    def fetch(cls, show_progress : bool = False, n_deals=10) -> List[Self]:
         """
         Retrieve all deals from the selected RSS feeds
         """
@@ -80,7 +80,7 @@ class ScrapedDeal:
         feed_iter = tqdm(feeds) if show_progress else feeds
         for feed_url in feed_iter:
             feed = feedparser.parse(feed_url)
-            for entry in feed.entries[:10]:
+            for entry in feed.entries[:n_deals]:
                 deals.append(cls(entry))
                 time.sleep(0.5)
         return deals
@@ -98,6 +98,23 @@ class DealSelection(BaseModel):
     A class to Represent a list of Deals
     """
     deals: List[Deal]
+
+# Example data
+#selection = DealSelection(deals=[
+#    Deal(product_description="Wireless Headphones", price=79.99, url="https://example.com/headphones"),
+#    Deal(product_description="USB-C Charger", price=19.99, url="https://example.com/charger"),
+#])
+
+# In json format it would be as follows:
+#{
+#    "deals" : [
+#        {
+#            "product_description": "sdfs",
+#            "price": 3.0,
+#            "url": "https://thing.com"   
+#        }
+#    ]
+#}
 
 class Opportunity(BaseModel):
     """

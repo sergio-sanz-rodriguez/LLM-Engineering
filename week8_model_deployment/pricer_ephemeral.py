@@ -1,11 +1,17 @@
 import modal
 from modal import App, Image
+import os
 
 # Setup
 
 app = modal.App("pricer")
-image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft")
-secrets = [modal.Secret.from_name("hf-secret")]
+#image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft") #We create an image and install new packages
+image = (
+    Image.debian_slim()
+    .pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft", "python-dotenv") #We create an image and install new packages
+    .add_local_python_source("pricer_ephemeral")  # 👈 Explicitly add your py code
+)
+secrets = [modal.Secret.from_name("hf-secret-2")]
 
 # Constants
 
@@ -18,7 +24,6 @@ PROJECT_RUN_NAME = f"{PROJECT_NAME}-{RUN_NAME}"
 REVISION = "e8d637df551603dc86cd7a1598a8f44af4d7ae36"
 FINETUNED_MODEL = f"{HF_USER}/{PROJECT_RUN_NAME}"
 
-
 @app.function(image=image, secrets=secrets, gpu=GPU, timeout=1800)
 def price(description: str) -> float:
     import os
@@ -26,6 +31,10 @@ def price(description: str) -> float:
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, set_seed
     from peft import PeftModel
+    from dotenv import load_dotenv
+    
+    load_dotenv(override=True)
+    token = os.environ["HF_TOKEN"]
 
     QUESTION = "How much does this cost to the nearest dollar?"
     PREFIX = "Price is $"
@@ -39,27 +48,28 @@ def price(description: str) -> float:
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_quant_type="nf4"
     )
-
+ 
     # Load model and tokenizer
     
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
-    
+ 
     base_model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL, 
         quantization_config=quant_config,
-        device_map="auto"
+        device_map="auto",
+        token=token,
     )
-
+ 
     fine_tuned_model = PeftModel.from_pretrained(base_model, FINETUNED_MODEL, revision=REVISION)
-
+ 
     set_seed(42)
     inputs = tokenizer.encode(prompt, return_tensors="pt").to("cuda")
     attention_mask = torch.ones(inputs.shape, device="cuda")
     outputs = fine_tuned_model.generate(inputs, attention_mask=attention_mask, max_new_tokens=5, num_return_sequences=1)
     result = tokenizer.decode(outputs[0])
-
+ 
     contents = result.split("Price is $")[1]
     contents = contents.replace(',','')
     match = re.search(r"[-+]?\d*\.\d+|\d+", contents)

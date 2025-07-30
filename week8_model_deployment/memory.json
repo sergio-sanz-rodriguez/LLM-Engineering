@@ -16,5 +16,23 @@
     },
     "estimate": 930.8824204895075,
     "discount": 225.88242048950747
+  },
+  {
+    "deal": {
+      "product_description": "The refurbished Unlocked Apple iPhone 14 Pro features 128GB of storage, providing ample space for apps, media, and more. This smartphone includes advanced camera capabilities for high-quality photography and video recording. With its elegant design and robust performance, it's an outstanding choice for both work and leisure, packaged with a 1-year Allstate warranty for security.",
+      "price": 440.0,
+      "url": "https://www.dealnews.com/products/Apple/Unlocked-Apple-iPhone-14-Pro-128-GB-Smartphone/474727.html?iref=rss-c142"
+    },
+    "estimate": 789.3691595184737,
+    "discount": 349.3691595184737
+  },
+  {
+    "deal": {
+      "product_description": "The Sumry 3,600W 24V Hybrid Solar Inverter is an efficient power solution that accommodates dual AC110V output, making it versatile for various installations. It is designed to function well both with and without batteries, providing flexibility in usage. Ideal for RVs, homes, and off-grid systems, it supports appliances with a robust output, catering to diverse power needs. With free shipping from a US warehouse, this inverter combines performance and value effectively.",
+      "price": 214.0,
+      "url": "https://www.dealnews.com/products/Sumry/Sumry-3-600-W-24-V-110-120-V-Hybrid-Solar-Inverter/490866.html?iref=rss-c142"
+    },
+    "estimate": 422.8666533417461,
+    "discount": 208.8666533417461
   }
 ]

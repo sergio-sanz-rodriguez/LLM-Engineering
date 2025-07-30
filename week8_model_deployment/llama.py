@@ -1,14 +1,24 @@
 import modal
 from modal import App, Volume, Image
+import os
 
 # Setup
 
 app = modal.App("llama")
-image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate")
-secrets = [modal.Secret.from_name("hf-secret")]
+#image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate")
+image = (
+    Image.debian_slim()
+    .pip_install("torch", "transformers", "bitsandbytes", "accelerate")
+    .add_local_python_source("llama")  # 👈 Explicitly add your llama.py
+)
+
+secrets = [modal.Secret.from_name("hf-secret-2")] # sergio-sanz-rod
 GPU = "T4"
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B" # "google/gemma-2-2b"
 
+from dotenv import load_dotenv
+load_dotenv(override=True)
+token = os.environ["HF_TOKEN"]
 
 
 @app.function(image=image, secrets=secrets, gpu=GPU, timeout=1800)
@@ -30,11 +40,12 @@ def generate(prompt: str) -> str:
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
-    
+
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME, 
         quantization_config=quant_config,
-        device_map="auto"
+        device_map="auto",
+        token=token,
     )
 
     set_seed(42)

@@ -10,7 +10,7 @@ class PlanningAgent(Agent):
 
     name = "Planning Agent"
     color = Agent.GREEN
-    DEAL_THRESHOLD = 50
+    DEAL_THRESHOLD = 1.02 #50
 
     def __init__(self, collection):
         """
@@ -29,10 +29,10 @@ class PlanningAgent(Agent):
         :returns: an opportunity including the discount
         """
         self.log("Planning Agent is pricing up a potential deal")
-        estimate = self.ensemble.price(deal.product_description)
-        discount = estimate - deal.price
+        estimate = self.ensemble.price(deal.product_description)        
+        discount = estimate[0] - deal.price
         self.log(f"Planning Agent has processed a deal with discount ${discount:.2f}")
-        return Opportunity(deal=deal, estimate=estimate, discount=discount)
+        return Opportunity(deal=deal, estimate=estimate[0], discount=discount)
 
     def plan(self, memory: List[str] = []) -> Optional[Opportunity]:
         """
@@ -49,9 +49,12 @@ class PlanningAgent(Agent):
             opportunities = [self.run(deal) for deal in selection.deals[:5]]
             opportunities.sort(key=lambda opp: opp.discount, reverse=True)
             best = opportunities[0]
+            real_price = best.estimate - best.discount
+            estimated_price = best.estimate
             self.log(f"Planning Agent has identified the best deal has discount ${best.discount:.2f}")
-            if best.discount > self.DEAL_THRESHOLD:
+            #if best.discount > self.DEAL_THRESHOLD:
+            if (estimated_price / real_price) > self.DEAL_THRESHOLD:
                 self.messenger.alert(best)
             self.log("Planning Agent has completed a run")
-            return best if best.discount > self.DEAL_THRESHOLD else None
+            return best if (estimated_price / real_price) > self.DEAL_THRESHOLD else None
         return None

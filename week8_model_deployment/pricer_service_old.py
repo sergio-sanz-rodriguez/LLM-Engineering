@@ -1,11 +1,17 @@
 import modal
 from modal import App, Image
+import os
 
 # Setup - define our infrastructure with code!
 
 app = modal.App("pricer-service")
-image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft")
-secrets = [modal.Secret.from_name("hf-secret")]
+#image = Image.debian_slim().pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft")
+image = (
+    Image.debian_slim()
+    .pip_install("torch", "transformers", "bitsandbytes", "accelerate", "peft", "python-dotenv") #We create an image and install new packages
+    .add_local_python_source("pricer_service_old")  # 👈 Explicitly add your py code
+)
+secrets = [modal.Secret.from_name("hf-secret-2")]
 
 # Constants
 
@@ -26,6 +32,10 @@ def price(description: str) -> float:
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, set_seed
     from peft import PeftModel
+    from dotenv import load_dotenv
+
+    load_dotenv(override=True)
+    token = os.environ["HF_TOKEN"]
 
     QUESTION = "How much does this cost to the nearest dollar?"
     PREFIX = "Price is $"
@@ -49,7 +59,8 @@ def price(description: str) -> float:
     base_model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL, 
         quantization_config=quant_config,
-        device_map="auto"
+        device_map="auto",
+        token=token,
     )
 
     fine_tuned_model = PeftModel.from_pretrained(base_model, FINETUNED_MODEL, revision=REVISION)
